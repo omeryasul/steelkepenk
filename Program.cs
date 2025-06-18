@@ -1,236 +1,237 @@
-using Application;
-using Application.Common.Interfaces;
+ï»¿using Application;
 using Infrastructure.Persistence;
-using Infrastructure.Persistence.Context;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Persistence;
-using Persistence.Services;
-using System.Reflection;
+using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Infrastructure.Persistence.Context;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Services
-builder.Services.AddControllersWithViews();
+// Add services to the container.
+builder.Services.AddControllers();
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddResponseCaching();
 
-// Database - Güvenli baðlantý
+// Swagger/OpenAPI - SADECE DEVELOPMENT
+builder.Services.AddEndpointsApiExplorer();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "WEBPROJE API",
+            Version = "v1",
+            Description = "WEBPROJE Web API - Development Environment"
+        });
+
+        // JWT Authentication iÃ§in Swagger yapÄ±landÄ±rmasÄ±
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer"
+        });
+
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    });
+}
+
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Application Services (MediatR, AutoMapper, FluentValidation)
 builder.Services.AddApplicationServices();
 
-// Persistence Services (DbContext, Repositories, Services)
+// Infrastructure Services (DbContext, Repositories, Services)
 builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddMemoryCache();
+builder.Services.AddControllersWithViews();
 
-// Memory Cache - Production'da da güvenli
-builder.Services.AddMemoryCache(options =>
+// CORS Policy - GÃœVENLÄ°
+builder.Services.AddCors(options =>
 {
-    options.SizeLimit = builder.Environment.IsDevelopment() ? 100 : 1000;
-    options.CompactionPercentage = 0.25;
+    if (builder.Environment.IsDevelopment())
+    {
+        options.AddPolicy("Development", policy =>
+        {
+            policy.WithOrigins(
+                "https://localhost:3000",
+                "http://localhost:3000",
+                "https://localhost:4200",
+                "http://localhost:4200",
+                "https://localhost:7131",
+                "http://localhost:5021",
+                "https://localhost:7036",
+                "http://localhost:5142"
+            )
+            .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+            .WithHeaders("Content-Type", "Authorization", "X-Requested-With")
+            .AllowCredentials();
+        });
+    }
+    else
+    {
+        options.AddPolicy("Production", policy =>
+        {
+            policy.WithOrigins("https://yourdomain.com") // GERÃ‡EK DOMAIN'Ä° BURAYA YAZ
+                  .WithMethods("GET", "POST", "PUT", "DELETE")
+                  .WithHeaders("Content-Type", "Authorization")
+                  .AllowCredentials();
+        });
+    }
 });
 
-// Identity - Güçlendirilmiþ güvenlik
-builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
+// JWT Authentication - GÃœVENLÄ°
+var jwtKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY");
+if (string.IsNullOrEmpty(jwtKey))
 {
-    // Þifre gereksinimleri
-    options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 8; // 6'dan 8'e çýkarýldý
-    options.Password.RequireNonAlphanumeric = true; // true yapýldý
-    options.Password.RequireUppercase = true;
-    options.Password.RequireLowercase = true;
-    options.Password.RequiredUniqueChars = 4; // Eklendi
+    if (builder.Environment.IsDevelopment())
+    {
+        jwtKey = "development-key-change-in-production-123456789abcdef-VERY-LONG-KEY";
+    }
+    else
+    {
+        throw new InvalidOperationException("JWT_SECRET_KEY environment variable must be set in production");
+    }
+}
 
-    // Hesap kilitleme
-    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    options.Lockout.MaxFailedAccessAttempts = 5;
-    options.Lockout.AllowedForNewUsers = true;
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.Zero,
+            // Ek gÃ¼venlik
+            RequireExpirationTime = true,
+            RequireSignedTokens = true
+        };
 
-    // Güvenlik
-    options.SignIn.RequireConfirmedAccount = false;
-    options.User.RequireUniqueEmail = true;
-})
-.AddRoles<IdentityRole>()
-.AddEntityFrameworkStores<ApplicationDbContext>();
+        // Event handlers for better logging
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                if (builder.Environment.IsDevelopment())
+                {
+                    Console.WriteLine($"JWT Authentication failed: {context.Exception}");
+                }
+                return Task.CompletedTask;
+            }
+        };
+    });
 
-// Configure Identity cookies - Güçlendirilmiþ
-builder.Services.ConfigureApplicationCookie(options =>
+// Rate Limiting (ASP.NET Core 7+)
+builder.Services.AddRateLimiter(options =>
 {
-    options.LoginPath = "/Admin/Account/Login";
-    options.LogoutPath = "/Admin/Account/Logout";
-    options.AccessDeniedPath = "/Admin/Account/AccessDenied";
-    options.ExpireTimeSpan = TimeSpan.FromHours(8);
-    options.SlidingExpiration = true;
-    options.Cookie.Name = "AdminAuth";
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // Always olarak deðiþtirildi
-    options.Cookie.SameSite = SameSiteMode.Strict; // Eklendi
-    options.Cookie.IsEssential = true; // Eklendi
-});
-
-// Authorization
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-});
-
-// GÜVENLIK: Anti-forgery token
-builder.Services.AddAntiforgery(options =>
-{
-    options.HeaderName = "X-CSRF-TOKEN";
-    options.Cookie.Name = "__RequestVerificationToken";
-    options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.AddFixedWindowLimiter("ApiPolicy", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 100;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 10;
+    });
 });
 
 var app = builder.Build();
 
-// Database initialization
-await InitializeDatabaseAsync(app);
-
-// GÜVENLIK HEADER'LARI - Her ortam için
+// GÃœVENLIK HEADER'LARI
 app.Use(async (context, next) =>
 {
-    // Content Security Policy
-    context.Response.Headers.Add("Content-Security-Policy",
-        "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://www.google-analytics.com https://www.googletagmanager.com; " +
-        "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; " +
-        "img-src 'self' data: https:; " +
-        "font-src 'self' https://cdnjs.cloudflare.com; " +
-        "connect-src 'self' https://www.google-analytics.com; " +
-        "frame-src 'self' https://www.google.com;");
-
-    // Diðer güvenlik header'larý
-    context.Response.Headers.Add("X-Frame-Options", "SAMEORIGIN");
+    // API iÃ§in CSP
+    context.Response.Headers.Add("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none';");
+    context.Response.Headers.Add("X-Frame-Options", "DENY");
     context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
     context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
-    context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
-    context.Response.Headers.Add("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
-
-    // Development cache ayarlarý
-    if (app.Environment.IsDevelopment())
-    {
-        context.Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
-        context.Response.Headers.Add("Pragma", "no-cache");
-        context.Response.Headers.Add("Expires", "0");
-    }
+    context.Response.Headers.Add("Referrer-Policy", "no-referrer");
+    context.Response.Headers.Add("X-Permitted-Cross-Domain-Policies", "none");
 
     await next();
 });
 
-// Pipeline
-if (!app.Environment.IsDevelopment())
+// Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "WEBPROJE API V1");
+        c.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
-app.UseRouting();
 
+// Rate limiting
+app.UseRateLimiter();
+
+// CORS - Ortama gÃ¶re
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("Development");
+}
+else
+{
+    app.UseCors("Production");
+}
+
+// Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Admin area routing
-app.MapAreaControllerRoute(
-    name: "admin",
-    areaName: "Admin",
-    pattern: "Admin/{controller=Admin}/{action=Index}/{id?}");
+// Controller endpoints
+app.MapControllers().RequireRateLimiting("ApiPolicy");
 
-// Account controller için özel route
-app.MapAreaControllerRoute(
-    name: "adminAccount",
-    areaName: "Admin",
-    pattern: "Admin/Account/{action=Login}",
-    defaults: new { controller = "Account" });
-
-// Default route
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.Run();
-
-// Database initialization - GÜVENLÝ
-static async Task InitializeDatabaseAsync(WebApplication app)
+// Health check endpoint
+app.MapGet("/health", () => Results.Ok(new
 {
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    Status = "Healthy",
+    Timestamp = DateTime.UtcNow,
+    Environment = app.Environment.EnvironmentName
+})).AllowAnonymous();
 
-    try
-    {
-        // Apply migrations
-        if (context.Database.GetPendingMigrations().Any())
-        {
-            await context.Database.MigrateAsync();
-            logger.LogInformation("Database migrations applied.");
-        }
-
-        // Seed roles
-        if (!await roleManager.RoleExistsAsync("Admin"))
-        {
-            await roleManager.CreateAsync(new IdentityRole("Admin"));
-            logger.LogInformation("Admin role created.");
-        }
-
-        // Seed admin user - GÜVENLÝ ÞÝFRE
-        var adminEmail = "admin@furkankepenek.com";
-        var adminUser = await userManager.FindByEmailAsync(adminEmail);
-        if (adminUser == null)
-        {
-            // Güçlü þifre oluþtur
-            var adminPassword = GenerateSecurePassword();
-
-            adminUser = new ApplicationUser
-            {
-                UserName = adminEmail,
-                Email = adminEmail,
-                FirstName = "Admin",
-                LastName = "User",
-                EmailConfirmed = true,
-                IsAdmin = true,
-                IsActive = true
-            };
-
-            var result = await userManager.CreateAsync(adminUser, adminPassword);
-            if (result.Succeeded)
-            {
-                await userManager.AddToRoleAsync(adminUser, "Admin");
-                logger.LogInformation("Admin user created successfully.");
-                // ÞÝFREYÝ LOGLAMA - Sadece güvenli ortamda
-                if (app.Environment.IsDevelopment())
-                {
-                    logger.LogWarning("DEVELOPMENT - Admin Password: {Password}", adminPassword);
-                }
-            }
-            else
-            {
-                logger.LogError("Failed to create admin user: {Errors}",
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
-            }
-        }
-        else
-        {
-            logger.LogInformation("Admin user already exists: {Email}", adminEmail);
-        }
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "Database initialization failed.");
-    }
+// API Info endpoint - Sadece development
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/", () => "WEBPROJE API Ã§alÄ±ÅŸÄ±yor! Swagger iÃ§in /swagger adresine gidin.").AllowAnonymous();
 }
 
-// Güvenli þifre oluþturucu
-static string GenerateSecurePassword()
+try
 {
-    const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
-    var random = new Random();
-    return new string(Enumerable.Repeat(chars, 12)
-        .Select(s => s[random.Next(s.Length)]).ToArray());
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("API starting in {Environment} environment", app.Environment.EnvironmentName);
+    app.Run();
+}
+catch (Exception ex)
+{
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogCritical(ex, "API failed to start");
+    throw;
 }
