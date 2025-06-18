@@ -1,0 +1,254 @@
+﻿@model WEBPROJE.WEBUI.Models.WEBPROJE.WEBUI.Models.AboutSettingsViewModel
+@{
+    ViewData["Title"] = "Hakkımızda Yönetimi";
+    Layout = "_AdminLayout";
+}
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<div class="management-section">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="fas fa-info-circle"></i>
+            Hakkımızda Metinleri
+        </div>
+        <div class="section-actions">
+            <button type="submit" form="aboutForm" class="item-action">
+                <i class="fas fa-save"></i>
+                Kaydet
+            </button>
+        </div>
+    </div>
+
+    <form id="aboutForm" asp-controller="Admin" asp-action="About" method="post">
+        @Html.AntiForgeryToken()
+        
+        <div class="settings-container">
+            <!-- 1. Paragraf -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-paragraph"></i> Birinci Paragraf (Giriş)</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label asp-for="AboutText1">Firma Tanıtım Metni</label>
+                        <textarea asp-for="AboutText1" class="form-control" rows="4" 
+                                  placeholder="Furkan Kepenek, kepenek ve kapı sistemlerinin temeli..."></textarea>
+                        <span asp-validation-for="AboutText1" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. Paragraf -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-cogs"></i> İkinci Paragraf (Teknoloji & Hizmet)</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label asp-for="AboutText2">Teknoloji ve Hizmet Anlayışı</label>
+                        <textarea asp-for="AboutText2" class="form-control" rows="4" 
+                                  placeholder="Furkan Kepenek otomatik kapı sistemleri; sektöründeki teknolojik gelişmeleri..."></textarea>
+                        <span asp-validation-for="AboutText2" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 3. Paragraf -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-star"></i> Üçüncü Paragraf (Neden Tercih Ediliyoruz)</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label asp-for="AboutText3">Tercih Edilme Sebepleri</label>
+                        <textarea asp-for="AboutText3" class="form-control" rows="4" 
+                                  placeholder="Türkiye'nin seçkin firmaları ve perakende kullanıcılarının..."></textarea>
+                        <span asp-validation-for="AboutText3" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Paragraf -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-handshake"></i> Dördüncü Paragraf (Müşteri Memnuniyeti)</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label asp-for="AboutText4">Satış ve Servis Hizmetleri</label>
+                        <textarea asp-for="AboutText4" class="form-control" rows="4" 
+                                  placeholder="Satış ve satış sonrası kepenek arıza servis hizmetlerinde..."></textarea>
+                        <span asp-validation-for="AboutText4" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Paragraf -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-lightbulb"></i> Beşinci Paragraf (Çözüm Odaklı Yaklaşım)</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label asp-for="AboutText5">Çözüm Odaklı Yaklaşım</label>
+                        <textarea asp-for="AboutText5" class="form-control" rows="4" 
+                                  placeholder="'Sorun' değil, 'çözüm' yaratmaya yönelik yaklaşım..."></textarea>
+                        <span asp-validation-for="AboutText5" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Toast notification system (önceki toast kodlarınızı buraya ekleyin)
+    
+    // Handle form submission success messages
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <text>
+            document.addEventListener('DOMContentLoaded', function () {
+                showToast('success', '@TempData["SuccessMessage"]');
+            });
+        </text>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <text>
+            document.addEventListener('DOMContentLoaded', function () {
+                showToast('error', '@TempData["ErrorMessage"]');
+            });
+        </text>
+    }
+
+    // Auto-resize textareas
+    document.addEventListener('DOMContentLoaded', function() {
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(textarea => {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+        });
+    });
+</script>
+
+<style>
+    .settings-container {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .settings-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .card-content {
+        padding: 24px;
+    }
+
+    .form-group {
+        margin-bottom: 0;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.5;
+        transition: all 0.2s ease;
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .text-danger {
+        color: #ef4444;
+        font-size: 12px;
+        margin-top: 4px;
+        display: block;
+    }
+
+    .management-section {
+        padding: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .section-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .item-action {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .item-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+</style>

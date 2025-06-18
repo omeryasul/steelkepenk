@@ -1,0 +1,633 @@
+﻿@model List<Application.Features.Products.DTOs.ProductListDto>
+@{
+    ViewData["Title"] = "Ürün Yönetimi";
+    Layout = "_AdminLayout";
+}
+
+<div class="management-section">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="fas fa-box"></i>
+            Ürün Yönetimi
+        </div>
+        <div class="section-actions">
+            <button class="item-action" onclick="showAddProductForm()">
+                <i class="fas fa-plus"></i>
+                Yeni Ürün
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Ürün Resmi</th>
+                    <th>Ürün Adı</th>
+                    <th>Kategori</th>
+                    <th>Fiyat</th>
+                    <th>İndirimli Fiyat</th>
+                    <th>Öne Çıkan</th>
+                    <th>Durum</th>
+                    <th>Görüntülenme</th>
+                    <th>Sıralama</th>
+                    <th>Oluşturma Tarihi</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var product in Model)
+                    {
+                        <tr>
+                            <td>@product.Id</td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(product.MainImage))
+                                {
+                                    <img src="@product.MainImage" alt="@product.Name" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                                }
+                                else if (!string.IsNullOrEmpty(product.FeaturedImage))
+                                {
+                                    <img src="@product.FeaturedImage" alt="@product.Name" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px;">
+                                }
+                                else
+                                {
+                                    <div style="width: 50px; height: 50px; background: var(--gray-200); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-image" style="color: var(--gray-400);"></i>
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--dark-color);">@product.Name</div>
+                                <div style="font-size: 12px; color: var(--gray-500);">@product.Slug</div>
+                                @if (!string.IsNullOrEmpty(product.ShortDescription))
+                                {
+                                    <div style="font-size: 11px; color: var(--gray-400); margin-top: 2px;">
+                                        @(product.ShortDescription.Length > 50 ? product.ShortDescription.Substring(0, 50) + "..." : product.ShortDescription)
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(product.CategoryName))
+                                {
+                                    <span class="category-badge">@product.CategoryName</span>
+                                }
+                                else
+                                {
+                                    <span style="color: var(--gray-400);">-</span>
+                                }
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--dark-color);">
+                                    @if (!string.IsNullOrEmpty(product.DisplayPrice))
+                                    {
+                                        @product.DisplayPrice
+                                    }
+                                    else
+                                    {
+                                        <span>₺@product.Price.ToString("N2")</span>
+                                    }
+                                </div>
+                                @if (!string.IsNullOrEmpty(product.PriceNote))
+                                {
+                                    <div style="font-size: 10px; color: var(--gray-500);">@product.PriceNote</div>
+                                }
+                            </td>
+                            <td>
+                                @if (product.DiscountPrice.HasValue)
+                                {
+                                    <span style="font-weight: 600; color: var(--danger-color);">
+                                        ₺@product.DiscountPrice.Value.ToString("N2")
+                                    </span>
+                                    <div style="font-size: 11px; color: var(--success-color);">
+                                        %@Math.Round((1 - product.DiscountPrice.Value / product.Price) * 100, 0) indirim
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span style="color: var(--gray-400);">-</span>
+                                }
+                            </td>
+                            <td>
+                                @if (product.IsFeatured)
+                                {
+                                    <i class="fas fa-star" style="color: var(--warning-color);" title="Öne Çıkan"></i>
+                                }
+                                else
+                                {
+                                    <i class="far fa-star" style="color: var(--gray-400);" title="Normal"></i>
+                                }
+                            </td>
+                            <td>
+                                <span class="status-badge @(GetStatusClass(product.Status))">
+                                    @GetStatusText(product.Status)
+                                </span>
+                            </td>
+                            <td>
+                                <span style="font-weight: 500; color: var(--primary-color);">
+                                    @product.ViewCount
+                                </span>
+                            </td>
+                            <td>@product.SortOrder</td>
+                            <td>
+                                @product.CreatedDate.ToString("dd.MM.yyyy")
+                                @if (product.UpdatedDate.HasValue)
+                                {
+                                    <div style="font-size: 10px; color: var(--gray-500);">
+                                        Son: @product.UpdatedDate.Value.ToString("dd.MM.yyyy")
+                                    </div>
+                                }
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 4px;">
+                                    <button class="btn-edit" onclick="editProduct(@product.Id)" title="Düzenle">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-delete" onclick="deleteProduct(@product.Id)" title="Sil">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="12" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-box-open" style="font-size: 48px; color: var(--gray-400); margin-bottom: 16px;"></i>
+                            <br>
+                            Henüz ürün bulunmamaktadır.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for Add Product -->
+<div class="modal-overlay" id="productModal">
+    <div class="modal-content" style="max-width: 900px;">
+        <form asp-action="CreateProduct" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div style="padding: 24px;">
+                <h3 style="margin-bottom: 20px; color: var(--dark-color);">Yeni Ürün Ekle</h3>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Ürün Adı <span style="color: red;">*</span></label>
+                        <input type="text" name="Name" class="form-control" required placeholder="Ürün adını girin">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kategori <span style="color: red;">*</span></label>
+                        <select name="CategoryId" class="form-control" required>
+                            <option value="">Kategori Seçin</option>
+                            @foreach (var category in (List<SelectListItem>)ViewBag.Categories)
+                            {
+                                <option value="@category.Value">@category.Text</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Detaylı Açıklama <span style="color: red;">*</span></label>
+                        <textarea name="Description" class="form-control" rows="10" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ürün Görseli</label>
+                        <input type="file" name="ImageFile" class="form-control-file" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Durum</label>
+                    <select name="Status" class="form-control">
+                        <option value="0">Taslak</option>
+                        <option value="1" selected>Yayında</option>
+                        <option value="2">Pasif</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" class="btn-delete" onclick="closeModal()">İptal</button>
+                    <button type="submit" class="item-action">Kaydet</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Modal for Edit Product -->
+<div class="modal-overlay" id="editProductModal">
+    <div class="modal-content" style="max-width: 900px;">
+        <form id="editProductForm" asp-action="UpdateProduct" method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div style="padding: 24px;">
+                <h3 style="margin-bottom: 20px; color: var(--dark-color);">Ürün Düzenle</h3>
+                <input type="hidden" id="editProductId" name="Id" />
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Ürün Adı <span style="color: red;">*</span></label>
+                        <input type="text" id="editProductName" name="Name" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Kategori <span style="color: red;">*</span></label>
+                        <select id="editProductCategory" name="CategoryId" class="form-control" required>
+                            <option value="">Kategori Seçin</option>
+                            @foreach (var category in (List<SelectListItem>)ViewBag.Categories)
+                            {
+                                <option value="@category.Value">@category.Text</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>Detaylı Açıklama <span style="color: red;">*</span></label>
+                        <textarea id="editProductDescription" name="Description" class="form-control" rows="10" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Yeni Görsel Yükle</label>
+                        <input type="file" name="ImageFile" class="form-control-file" />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Durum</label>
+                    <select id="editProductStatus" name="Status" class="form-control">
+                        <option value="0">Taslak</option>
+                        <option value="1">Yayında</option>
+                        <option value="2">Pasif</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" class="btn-delete" onclick="closeEditModal()">İptal</button>
+                    <button type="submit" class="item-action">Güncelle</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@functions {
+    private string GetStatusClass(Domain.Enums.ProductStatus status)
+    {
+        return status switch
+        {
+            Domain.Enums.ProductStatus.Active => "active",
+            Domain.Enums.ProductStatus.Draft => "draft",
+            Domain.Enums.ProductStatus.Inactive => "inactive",
+            _ => "inactive"
+        };
+    }
+
+    private string GetStatusText(Domain.Enums.ProductStatus status)
+    {
+        return status switch
+        {
+            Domain.Enums.ProductStatus.Active => "Yayında",
+            Domain.Enums.ProductStatus.Draft => "Taslak",
+            Domain.Enums.ProductStatus.Inactive => "Pasif",
+            _ => "Bilinmiyor"
+        };
+    }
+}
+<script>
+    // Modal Functions
+    function showAddProductForm() {
+        document.getElementById('productModal').classList.add('show');
+    }
+
+    function closeModal() {
+        document.getElementById('productModal').classList.remove('show');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editProductModal').classList.remove('show');
+    }
+
+    // DOĞRU Edit Product Function
+    function editProduct(id) {
+        console.log('Edit product called for ID:', id);
+
+        const editModal = document.getElementById('editProductModal');
+        if (!editModal) {
+            alert('Edit modal bulunamadı!');
+            return;
+        }
+
+        fetch(`/Admin/Products/GetProduct/${id}`)
+            .then(response => {
+                console.log('Response status:', response.status);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Data received:', data);
+                if (data.succeeded) {
+                    const product = data.data;
+
+                    // Sadece mevcut 4 alanı doldur
+                    document.getElementById('editProductId').value = product.id || '';
+                    document.getElementById('editProductName').value = product.name || '';
+                    document.getElementById('editProductCategory').value = product.categoryId || '';
+                    document.getElementById('editProductDescription').value = product.description || '';
+                    document.getElementById('editProductStatus').value = product.status || '1';
+
+                    // Modal'ı göster
+                    document.getElementById('editProductModal').classList.add('show');
+                    console.log('Modal opened');
+                } else {
+                    showNotification('Ürün bilgileri alınamadı: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showNotification('Bir hata oluştu: ' + error.message, 'error');
+            });
+    }
+    function toggleFeatured(id) {
+        if (confirm('Bu ürünün öne çıkarma durumunu değiştirmek istediğinizden emin misiniz?')) {
+            fetch(`/Admin/Products/ToggleFeatured/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.succeeded) {
+                        showNotification('Ürün durumu başarıyla güncellendi.', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification('İşlem başarısız: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Bir hata oluştu.', 'error');
+                });
+        }
+    }
+
+    function deleteProduct(id) {
+        if (confirm('Bu ürünü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+            fetch(`/Admin/Products/Delete/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.succeeded) {
+                        showNotification('Ürün başarıyla silindi.', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showNotification('Silme işlemi başarısız: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('Bir hata oluştu.', 'error');
+                });
+        }
+    }
+
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `notification ${type} show`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    }
+
+    // Event Listeners
+    document.addEventListener('DOMContentLoaded', function () {
+        console.log('DOM loaded, setting up event listeners');
+
+        // Auto-generate slug from product name (Add Form)
+        const nameInput = document.querySelector('input[name="Name"]');
+        if (nameInput) {
+            nameInput.addEventListener('input', function (e) {
+                // Slug generation logic can be added here if needed
+            });
+        }
+
+        // Auto-generate slug for edit form
+        const editNameInput = document.getElementById('editProductName');
+        const editSlugInput = document.getElementById('editProductSlug');
+
+        if (editNameInput && editSlugInput) {
+            editNameInput.addEventListener('input', function (e) {
+                const slug = e.target.value
+                    .toLowerCase()
+                    .replace(/ğ/g, 'g')
+                    .replace(/ü/g, 'u')
+                    .replace(/ş/g, 's')
+                    .replace(/ı/g, 'i')
+                    .replace(/ö/g, 'o')
+                    .replace(/ç/g, 'c')
+                    .replace(/[^a-z0-9]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+                editSlugInput.value = slug;
+            });
+        }
+
+        // Modal click event listeners
+        const productModal = document.getElementById('productModal');
+        const editProductModal = document.getElementById('editProductModal');
+
+        if (productModal) {
+            productModal.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeModal();
+                }
+            });
+        }
+
+        if (editProductModal) {
+            editProductModal.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    closeEditModal();
+                }
+            });
+        }
+    });
+
+    // Close modals on Escape key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeEditModal();
+        }
+    });
+</script>
+<style>
+    /* Ürün tablosu için özel stiller */
+    .data-table img {
+        border: 2px solid var(--gray-200);
+        transition: all 0.3s ease;
+    }
+
+    .data-table img:hover {
+        transform: scale(1.1);
+        border-color: var(--primary-color);
+    }
+
+    .category-badge {
+        background: var(--primary-color);
+        color: var(--white);
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.draft {
+        background: rgba(217, 119, 6, 0.1);
+        color: var(--warning-color);
+    }
+
+    .status-badge.active {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--success-color);
+    }
+
+    .status-badge.inactive {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger-color);
+    }
+
+    .btn-featured {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: var(--gray-400);
+        color: var(--white);
+    }
+
+    .btn-featured.featured {
+        background: var(--warning-color);
+    }
+
+    .btn-featured:hover {
+        transform: translateY(-1px);
+    }
+
+    /* Modal için daha geniş boyut */
+    .modal-content {
+        max-width: 900px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    /* Form stilleri */
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--gray-300);
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    /* Checkbox stilleri */
+    input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--primary-color);
+    }
+
+    /* Notification styles */
+    .notification {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 20px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--shadow-lg);
+        z-index: 10001;
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+
+    .notification.show {
+        transform: translateX(0);
+    }
+
+    .notification.success {
+        background: var(--success-color);
+        color: var(--white);
+    }
+
+    .notification.error {
+        background: var(--danger-color);
+        color: var(--white);
+    }
+
+    /* Responsive table */
+    @@media (max-width: 1200px) {
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        .data-table {
+            min-width: 1200px;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .modal-content {
+            max-width: 95%;
+            margin: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .modal-content > div {
+            padding: 16px !important;
+        }
+    }
+</style>

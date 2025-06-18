@@ -1,0 +1,345 @@
+﻿@model WEBPROJE.WEBUI.Models.ContactPageSettingsViewModel
+@{
+    ViewData["Title"] = "İletişim Sayfası Yönetimi";
+    Layout = "_AdminLayout";
+}
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<div class="management-section">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="fas fa-envelope"></i>
+            İletişim Sayfası Yönetimi
+        </div>
+        <div class="section-actions">
+            <button type="submit" form="contactPageForm" class="item-action">
+                <i class="fas fa-save"></i>
+                Kaydet
+            </button>
+        </div>
+    </div>
+
+    <form id="contactPageForm" asp-controller="Admin" asp-action="ContactPage" method="post">
+        @Html.AntiForgeryToken()
+        
+        <div class="settings-container">
+            <!-- Sayfa Başlıkları -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-heading"></i> Sayfa Başlıkları</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label asp-for="ContactTitle">Ana Başlık</label>
+                            <input asp-for="ContactTitle" class="form-control" 
+                                   placeholder="Bizimle İletişime Geçin" />
+                            <span asp-validation-for="ContactTitle" class="text-danger"></span>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="ContactSubtitle">İletişim Bilgileri Başlığı</label>
+                            <input asp-for="ContactSubtitle" class="form-control" 
+                                   placeholder="İletişim Bilgilerimiz" />
+                            <span asp-validation-for="ContactSubtitle" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="ContactDescription">Açıklama</label>
+                        <textarea asp-for="ContactDescription" class="form-control" rows="3"
+                                  placeholder="Sorularınız ve talepleriniz için bizimle iletişime geçebilirsiniz."></textarea>
+                        <span asp-validation-for="ContactDescription" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- İletişim Bilgileri -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-phone"></i> İletişim Bilgileri</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label asp-for="ContactPhone">Telefon</label>
+                            <input asp-for="ContactPhone" class="form-control" 
+                                   placeholder="+905336619312" />
+                            <span asp-validation-for="ContactPhone" class="text-danger"></span>
+                            <small class="form-text text-muted">
+                                Örnek: +905336619312
+                            </small>
+                        </div>
+                        <div class="form-group">
+                            <label asp-for="ContactWhatsApp">WhatsApp</label>
+                            <input asp-for="ContactWhatsApp" class="form-control" 
+                                   placeholder="+905336619312" />
+                            <span asp-validation-for="ContactWhatsApp" class="text-danger"></span>
+                            <small class="form-text text-muted">
+                                Örnek: +905336619312 (Ülke kodu ile birlikte)
+                            </small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="ContactEmail">E-posta</label>
+                        <input asp-for="ContactEmail" type="email" class="form-control" 
+                               placeholder="info@furkankepenek.com" />
+                        <span asp-validation-for="ContactEmail" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adres ve Çalışma Saatleri -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-map-marker-alt"></i> Konum ve Çalışma Bilgileri</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label asp-for="ContactAddress">Adres</label>
+                        <textarea asp-for="ContactAddress" class="form-control" rows="3"
+                                  placeholder="İstanbul, Türkiye"></textarea>
+                        <span asp-validation-for="ContactAddress" class="text-danger"></span>
+                    </div>
+                    <div class="form-group">
+                        <label asp-for="WorkingHours">Çalışma Saatleri</label>
+                        <input asp-for="WorkingHours" class="form-control" 
+                               placeholder="Pazartesi - Pazar: 08:00 - 22:00" />
+                        <span asp-validation-for="WorkingHours" class="text-danger"></span>
+                        <small class="form-text text-muted">
+                            Örnek: Pazartesi - Cuma: 09:00 - 18:00, Cumartesi: 10:00 - 16:00
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Harita Embed -->
+            <div class="settings-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-map"></i> Harita Entegrasyonu</h3>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label asp-for="ContactMapEmbed">Google Maps Embed Kodu</label>
+                        <textarea asp-for="ContactMapEmbed" class="form-control" rows="4"
+                                  placeholder='<iframe src="https://www.google.com/maps/embed?..." width="100%" height="300" style="border:0;" allowfullscreen="" loading="lazy"></iframe>'></textarea>
+                        <span asp-validation-for="ContactMapEmbed" class="text-danger"></span>
+                        <small class="form-text text-muted">
+                            <strong>Nasıl Alınır:</strong><br>
+                            1. Google Maps'te adresinizi bulun<br>
+                            2. "Paylaş" butonuna tıklayın<br>
+                            3. "Haritayı Göm" sekmesine geçin<br>
+                            4. HTML kodunu kopyalayıp buraya yapıştırın
+                        </small>
+                    </div>
+                                    </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Toast notification functions (önceki kodlarınızdan ekleyin)
+    
+    // Handle form submission success messages
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <text>
+            document.addEventListener('DOMContentLoaded', function () {
+                showToast('success', '@TempData["SuccessMessage"]');
+            });
+        </text>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <text>
+            document.addEventListener('DOMContentLoaded', function () {
+                showToast('error', '@TempData["ErrorMessage"]');
+            });
+        </text>
+    }
+
+    // Map preview functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        const mapEmbedTextarea = document.querySelector('textarea[name="ContactMapEmbed"]');
+        const mapPreview = document.getElementById('mapPreview');
+        const mapPreviewContent = document.getElementById('mapPreviewContent');
+
+        function updateMapPreview() {
+            const embedCode = mapEmbedTextarea.value.trim();
+            
+            if (embedCode) {
+                mapPreviewContent.innerHTML = embedCode;
+                mapPreview.style.display = 'block';
+            } else {
+                mapPreview.style.display = 'none';
+            }
+        }
+
+        // Update preview on input
+        mapEmbedTextarea.addEventListener('input', updateMapPreview);
+        
+        // Initial preview update
+        updateMapPreview();
+
+        // Phone number formatting
+        const phoneInputs = document.querySelectorAll('input[name="ContactPhone"], input[name="ContactWhatsApp"]');
+        phoneInputs.forEach(input => {
+            input.addEventListener('input', function(e) {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.startsWith('90')) {
+                    value = '+' + value;
+                } else if (value.startsWith('5') && value.length === 10) {
+                    value = '+90' + value;
+                }
+                e.target.value = value;
+            });
+        });
+    });
+
+    // Toast functions (aynı önceki toast sisteminden)
+    function showToast(type, message) {
+        // Önceki toast notification kodlarınızı buraya ekleyin
+        console.log(type + ': ' + message);
+    }
+</script>
+
+<style>
+    .settings-container {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .settings-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px 24px;
+    }
+
+    .card-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .card-content {
+        padding: 24px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.5;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-text {
+        margin-top: 4px;
+        font-size: 12px;
+    }
+
+    .text-danger {
+        color: #ef4444;
+        font-size: 12px;
+        margin-top: 4px;
+        display: block;
+    }
+
+    .map-preview {
+        margin-top: 16px;
+        padding: 16px;
+        background: #f8fafc;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .map-preview h5 {
+        margin-bottom: 12px;
+        color: #374151;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .management-section {
+        padding: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .section-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .item-action {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .item-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+</style>

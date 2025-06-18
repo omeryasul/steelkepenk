@@ -1,0 +1,154 @@
+﻿@model WEBPROJE.WEBUI.Models.HomePageSettingsViewModel
+
+@{
+    ViewData["Title"] = "Ana Sayfa Yönetimi";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<h1 class="mb-4">Ana Sayfa Yönetimi</h1>
+
+<form asp-action="Homepage" asp-controller="Admin" method="post">
+    <div class="form-section" id="hero">
+        <h3>Hero Alanı</h3>
+        <div class="form-group">
+            <label>Başlık</label>
+            <input asp-for="HeroTitle" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Alt Başlık</label>
+            <input asp-for="HeroSubtitle" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <textarea asp-for="HeroDescription" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Telefon</label>
+            <input asp-for="HeroPhone" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>WhatsApp</label>
+            <input asp-for="HeroWhatsApp" class="form-control" />
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="form-section" id="company">
+        <h3>Şirket Bilgileri</h3>
+        <div class="form-group">
+            <label>Başlık</label>
+            <input asp-for="CompanyTitle" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <textarea asp-for="CompanyDescription" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Telefon</label>
+            <input asp-for="CompanyPhone" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Telefon Metni</label>
+            <input asp-for="CompanyPhoneText" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Tecrübe</label>
+            <input asp-for="CompanyExperience" class="form-control" />
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="form-section" id="cta">
+        <h3>Call To Action</h3>
+        <div class="form-group">
+            <label>Başlık</label>
+            <input asp-for="CtaTitle" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <textarea asp-for="CtaDescription" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Özellik 1</label>
+            <input asp-for="CtaFeature1" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Özellik 2</label>
+            <input asp-for="CtaFeature2" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Özellik 3</label>
+            <input asp-for="CtaFeature3" class="form-control" />
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="form-section" id="bottom-cta">
+        <h3>Alt CTA</h3>
+        <div class="form-group">
+            <label>Başlık</label>
+            <input asp-for="BottomCtaTitle" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <textarea asp-for="BottomCtaDescription" class="form-control"></textarea>
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="form-section" id="emergency">
+        <h3>Acil Durum</h3>
+        <div class="form-group">
+            <label>Başlık</label>
+            <input asp-for="EmergencyTitle" class="form-control" />
+        </div>
+        <div class="form-group">
+            <label>Açıklama</label>
+            <textarea asp-for="EmergencyDescription" class="form-control"></textarea>
+        </div>
+        <div class="form-group">
+            <label>Telefon</label>
+            <input asp-for="EmergencyPhone" class="form-control" />
+        </div>
+    </div>
+
+    <hr />
+
+    <div class="form-section" id="stats">
+        <h3>Hero İstatistikleri</h3>
+        <div class="row">
+            <div class="col-md-6">
+                <label>İstatistik 1 Sayı</label>
+                <input asp-for="HeroStat1Number" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label>İstatistik 1 Başlık</label>
+                <input asp-for="HeroStat1Label" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label>İstatistik 2 Sayı</label>
+                <input asp-for="HeroStat2Number" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label>İstatistik 2 Başlık</label>
+                <input asp-for="HeroStat2Label" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label>İstatistik 3 Sayı</label>
+                <input asp-for="HeroStat3Number" class="form-control" />
+            </div>
+            <div class="col-md-6">
+                <label>İstatistik 3 Başlık</label>
+                <input asp-for="HeroStat3Label" class="form-control" />
+            </div>
+        </div>
+    </div>
+
+    <hr />
+
+    <button type="submit" class="btn btn-success">Kaydet</button>
+</form>

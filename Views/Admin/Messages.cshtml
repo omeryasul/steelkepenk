@@ -1,0 +1,577 @@
+﻿@* Views/Admin/Messages.cshtml *@
+@model List<Application.Features.ContactMessages.DTOs.ContactMessageListDto>
+@{
+    ViewData["Title"] = "Müşteri Mesajları";
+    Layout = "_AdminLayout";
+}
+
+@Html.AntiForgeryToken()
+
+<div class="management-section">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="fas fa-envelope"></i>
+            Müşteri Mesajları
+        </div>
+        <div class="section-actions">
+            <button class="item-action" onclick="markAllAsRead()">
+                <i class="fas fa-check"></i>
+                Tümünü Okundu İşaretle
+            </button>
+        </div>
+    </div>
+
+    <div class="messages-list">
+        @if (Model != null && Model.Any())
+        {
+            @foreach (var message in Model)
+            {
+                <div class="message-item @(!message.HasReply ? "unread" : "")" data-message-id="@message.Id">
+                    <div class="message-header">
+                        <div class="sender-info">
+                            <strong>@message.FullName</strong>
+                            <span class="email">@message.Email</span>
+                            @if (!string.IsNullOrEmpty(message.Phone))
+                            {
+                                <span class="phone"> | @message.Phone</span>
+                            }
+                        </div>
+                        <div class="message-date">
+                            @message.CreatedDate.ToString("dd.MM.yyyy HH:mm")
+                        </div>
+                    </div>
+
+                    <div class="message-subject">@message.Subject</div>
+
+                    <div class="message-preview">
+                        @if (message.Subject?.Length > 100)
+                        {
+                            @message.Subject.Substring(0, 100);
+                        }
+                        else
+                        {
+                            @message.Subject
+                        }
+                    </div>
+
+                    <div class="message-status">
+                        <span class="status-badge @(message.StatusText.ToLower() == "new" ? "inactive" : "active")">
+                            @message.StatusText
+                        </span>
+
+                        @if (message.HasReply)
+                        {
+                            <span class="reply-badge">
+                                <i class="fas fa-reply"></i> Yanıtlandı
+                            </span>
+                        }
+                    </div>
+
+                    <div class="message-actions">
+                        <button class="btn-reply" onclick="showMessageDetails(@message.Id)">
+                            <i class="fas fa-eye"></i> Detay
+                        </button>
+
+                        @if (!message.HasReply)
+                        {
+                            <button class="btn-reply" onclick="replyMessage(@message.Id, '@message.Email', '@message.Subject')">
+                                <i class="fas fa-reply"></i> Yanıtla
+                            </button>
+                        }
+
+                        <button class="btn-delete" onclick="deleteMessage(@message.Id)">
+                            <i class="fas fa-trash"></i> Sil
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="empty-state" style="text-align: center; padding: 60px 20px;">
+                <i class="fas fa-envelope-open" style="font-size: 64px; color: var(--gray-400); margin-bottom: 20px;"></i>
+                <h3 style="color: var(--gray-600); margin-bottom: 10px;">Henüz mesaj bulunmamaktadır</h3>
+                <p style="color: var(--gray-500);">Müşterilerden gelen mesajlar burada görüntülenecektir.</p>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Message Detail Modal -->
+<div class="modal-overlay" id="messageDetailModal">
+    <div class="modal-content" style="max-width: 600px;">
+        <div id="messageDetailContent" style="padding: 24px;">
+            <!-- Message details will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<!-- Reply Modal -->
+<div class="modal-overlay" id="replyModal">
+    <div class="modal-content" style="max-width: 600px;">
+        <form id="replyForm" style="padding: 24px;">
+            <h3 style="margin-bottom: 20px; color: var(--dark-color);">Mesajı Yanıtla</h3>
+
+            <div class="form-group">
+                <label>Konu</label>
+                <input type="text" id="replySubject" class="form-control" readonly />
+            </div>
+
+            <div class="form-group">
+                <label>Alıcı</label>
+                <input type="email" id="replyTo" class="form-control" readonly />
+            </div>
+
+            <div class="form-group">
+                <label>Yanıt Mesajı</label>
+                <textarea id="replyMessage" class="form-control" rows="6" placeholder="Yanıtınızı yazın..." required></textarea>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                <button type="button" class="btn-delete" onclick="closeModal('replyModal')">İptal</button>
+                <button type="submit" class="item-action">
+                    <i class="fas fa-paper-plane"></i>
+                    Gönder
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showMessageDetails(messageId) {
+        document.getElementById('messageDetailModal').classList.add('show');
+        
+        // AJAX ile gerçek mesaj detaylarını çek
+        fetch(`/Admin/Messages/Details/${messageId}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.succeeded) {
+                const message = data.data;
+                document.getElementById('messageDetailContent').innerHTML = `
+                    <h3 style="margin-bottom: 20px;">Mesaj Detayları</h3>
+                    <div style="margin-bottom: 16px;">
+                        <strong>Gönderen:</strong> ${message.fullName}
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <strong>E-posta:</strong> ${message.email}
+                    </div>
+                    ${message.phone ? `<div style="margin-bottom: 16px;"><strong>Telefon:</strong> ${message.phone}</div>` : ''}
+                    ${message.company ? `<div style="margin-bottom: 16px;"><strong>Şirket:</strong> ${message.company}</div>` : ''}
+                    <div style="margin-bottom: 16px;">
+                        <strong>Konu:</strong> ${message.subject}
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <strong>Tarih:</strong> ${new Date(message.createdAt).toLocaleString('tr-TR')}
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <strong>Durum:</strong> ${message.statusText}
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <strong>Mesaj:</strong>
+                        <div style="background: #f8fafc; padding: 12px; border-radius: 6px; margin-top: 8px; white-space: pre-wrap;">${message.message}</div>
+                    </div>
+                    ${message.ipAddress ? `<div style="margin-bottom: 16px; font-size: 12px; color: #666;"><strong>IP:</strong> ${message.ipAddress}</div>` : ''}
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button class="btn-delete" onclick="closeModal('messageDetailModal')">Kapat</button>
+                    </div>
+                `;
+            } else {
+                document.getElementById('messageDetailContent').innerHTML = `
+                    <h3 style="margin-bottom: 20px;">Hata</h3>
+                    <p>Mesaj detayları yüklenirken hata oluştu.</p>
+                    <div style="text-align: right; margin-top: 20px;">
+                        <button class="btn-delete" onclick="closeModal('messageDetailModal')">Kapat</button>
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Hata:', error);
+            document.getElementById('messageDetailContent').innerHTML = `
+                <h3 style="margin-bottom: 20px;">Hata</h3>
+                <p>Mesaj detayları yüklenirken hata oluştu.</p>
+                <div style="text-align: right; margin-top: 20px;">
+                    <button class="btn-delete" onclick="closeModal('messageDetailModal')">Kapat</button>
+                </div>
+            `;
+        });
+    }
+
+    function replyMessage(messageId, email, subject) {
+        document.getElementById('replyModal').classList.add('show');
+
+        // Populate reply form
+        document.getElementById('replySubject').value = `Re: ${subject}`;
+        document.getElementById('replyTo').value = email;
+    }
+
+    function deleteMessage(messageId) {
+        if (confirm('Bu mesajı silmek istediğinizden emin misiniz?')) {
+            fetch(`/Admin/Messages/Delete/${messageId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Mesajı UI'dan kaldır
+                    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        messageElement.remove();
+                    }
+
+                    alert('Mesaj başarıyla silindi.');
+
+                    // Eğer hiç mesaj kalmadıysa empty state göster
+                    const remainingMessages = document.querySelectorAll('.message-item');
+                    if (remainingMessages.length === 0) {
+                        location.reload(); // Empty state göstermek için sayfayı yenile
+                    }
+                } else {
+                    alert('Mesaj silinirken hata oluştu.');
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                alert('İşlem sırasında hata oluştu.');
+            });
+        }
+    }
+
+    function markAllAsRead() {
+        if (confirm('Tüm mesajları okundu olarak işaretlemek istediğinizden emin misiniz?')) {
+            fetch('/Admin/Messages/MarkAllAsRead', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.succeeded) {
+                    // UI'yi güncelle - unread sınıflarını kaldır
+                    document.querySelectorAll('.message-item.unread').forEach(item => {
+                        item.classList.remove('unread');
+                    });
+                    
+                    // NEW badge'leri READ olarak değiştir
+                    document.querySelectorAll('.status-badge.inactive').forEach(badge => {
+                        badge.textContent = 'Read';
+                        badge.classList.remove('inactive');
+                        badge.classList.add('active');
+                    });
+                    
+                    alert(data.message);
+                } else {
+                    alert('Hata: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                alert('İşlem sırasında hata oluştu.');
+            });
+        }
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+
+    // Handle reply form submission
+    document.getElementById('replyForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const replyMessage = document.getElementById('replyMessage').value;
+        const replyTo = document.getElementById('replyTo').value;
+
+        if (replyMessage.trim()) {
+            // In a real application, you would send this via AJAX
+            alert(`Yanıt gönderildi: ${replyTo}`);
+            closeModal('replyModal');
+
+            // Clear form
+            document.getElementById('replyMessage').value = '';
+        }
+    });
+
+    // Close modals when clicking outside
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeModal(this.id);
+            }
+        });
+    });
+</script>
+
+<style>
+    .management-section {
+        padding: 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 32px;
+        padding-bottom: 16px;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .section-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .item-action {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+
+    .item-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+
+    .messages-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .message-item {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+
+    .message-item:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .message-item.unread {
+        border-left: 4px solid #3b82f6;
+        background: linear-gradient(135deg, #fff 0%, #f8fafc 100%);
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+
+    .sender-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .sender-info strong {
+        color: #1f2937;
+        font-size: 16px;
+    }
+
+    .email {
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .phone {
+        color: #6b7280;
+        font-size: 14px;
+    }
+
+    .message-date {
+        color: #9ca3af;
+        font-size: 12px;
+        font-weight: 500;
+        display: block !important;
+        visibility: visible !important;
+        min-width: 80px;
+        text-align: right;
+    }
+
+    .message-subject {
+        font-size: 16px;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 8px;
+    }
+
+    .message-preview {
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    .message-status {
+        display: flex;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .status-badge.active {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-badge.inactive {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .reply-badge {
+        background: rgba(5, 150, 105, 0.1);
+        color: #059669;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-left: 10px;
+    }
+
+    .message-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .btn-reply, .btn-delete {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .btn-reply {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-reply:hover {
+        background: #2563eb;
+    }
+
+    .btn-delete {
+        background: #ef4444;
+        color: white;
+    }
+
+    .btn-delete:hover {
+        background: #dc2626;
+    }
+
+    /* Modal styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 10000;
+    }
+
+    .modal-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.show .modal-content {
+        transform: scale(1);
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #374151;
+        font-size: 14px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.5;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    
+</style>

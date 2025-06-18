@@ -1,0 +1,132 @@
+﻿@model WEBPROJE.WEBUI.Models.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+    Layout = "_AdminLayout";
+}
+
+<!-- Dashboard Stats -->
+<div class="dashboard-grid">
+    <!-- Total Products -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <div class="card-title">Toplam Ürün</div>
+            <div class="card-icon primary">
+                <i class="fas fa-box"></i>
+            </div>
+        </div>
+        <div class="card-value">@Model.TotalProducts</div>
+        <div class="card-description">
+            <span class="card-trend up">
+                <i class="fas fa-arrow-up"></i> +12%
+            </span>
+            Son aydan bu yana
+        </div>
+    </div>
+
+    <!-- Total Categories -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <div class="card-title">Kategoriler</div>
+            <div class="card-icon success">
+                <i class="fas fa-folder"></i>
+            </div>
+        </div>
+        <div class="card-value">@Model.TotalCategories</div>
+        <div class="card-description">
+            <span class="card-trend up">
+                <i class="fas fa-arrow-up"></i> +3
+            </span>
+            Yeni kategori eklendi
+        </div>
+    </div>
+
+    <!-- Total Messages -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <div class="card-title">Toplam Mesaj</div>
+            <div class="card-icon warning">
+                <i class="fas fa-envelope"></i>
+            </div>
+        </div>
+        <div class="card-value">@Model.TotalContents</div>
+        <div class="card-description">
+            <span class="card-trend down">
+                <i class="fas fa-arrow-down"></i> -5%
+            </span>
+            Bu hafta
+        </div>
+    </div>
+
+    <!-- Page Settings -->
+    <div class="dashboard-card">
+        <div class="card-header">
+            <div class="card-title">Sayfa Ayarları</div>
+            <div class="card-icon danger">
+                <i class="fas fa-cog"></i>
+            </div>
+        </div>
+        <div class="card-value">@Model.TotalPageSettings</div>
+        <div class="card-description">
+            <span class="card-trend up">
+                <i class="fas fa-arrow-up"></i> +2
+            </span>
+            Bu ay
+        </div>
+    </div>
+</div>
+<!-- Quick Actions -->
+<div class="management-section">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="fas fa-cogs"></i>
+            Hızlı İşlemler
+        </div>
+    </div>
+
+    <div class="management-grid">
+        <!-- Categories -->
+        <div class="management-item">
+            <div class="item-icon primary">
+                <i class="fas fa-folder"></i>
+            </div>
+            <div class="item-title">Kategori Yönetimi</div>
+            <div class="item-description">
+                Kepenek kategorilerini yönetin. Yeni kategori ekleyin, mevcut kategorileri düzenleyin.
+            </div>
+            <a asp-controller="Admin" asp-action="Categories" class="item-action">
+                <i class="fas fa-edit"></i>
+                Yönet
+            </a>
+        </div>
+
+        <!-- Products -->
+        <div class="management-item">
+            <div class="item-icon success">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="item-title">Ürün Yönetimi</div>
+            <div class="item-description">
+                Kepenek ürünlerinizi yönetin. Fiyat, açıklama, resim ve teknik özelliklerini güncelleyin.
+            </div>
+            <a asp-controller="Admin" asp-action="Products" class="item-action">
+                <i class="fas fa-plus"></i>
+                Ürün Ekle
+            </a>
+        </div>
+
+        <!-- Homepage -->
+        <div class="management-item">
+            <div class="item-icon warning">
+                <i class="fas fa-home"></i>
+            </div>
+            <div class="item-title">Ana Sayfa Düzenleme</div>
+            <div class="item-description">
+                Hero bölümü, hizmetler, avantajlar ve müşteri yorumlarını düzenleyin.
+            </div>
+            <a asp-controller="Admin" asp-action="Homepage" class="item-action">
+                <i class="fas fa-paint-brush"></i>
+                Düzenle
+            </a>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,448 @@
+﻿@{
+    ViewData["Title"] = "Categories";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@model List<Application.Features.Categories.DTOs.CategoryListDto>
+@{
+    ViewData["Title"] = "Kategori Yönetimi";
+    Layout = "_AdminLayout";
+}
+<div id="toast-container"></div>
+
+<div class="management-section">
+    <div class="section-header">
+        <div class="section-title">
+            <i class="fas fa-folder"></i>
+            Kategori Yönetimi
+        </div>
+        <div class="section-actions">
+            <button class="item-action" onclick="showAddCategoryForm()">
+                <i class="fas fa-plus"></i>
+                Yeni Kategori
+            </button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Kategori Adı</th>
+                    <th>Slug</th>
+                    <th>Üst Kategori</th>
+                    <th>İçerik Sayısı</th>
+                    <th>Sıralama</th>
+                    <th>Durum</th>
+                    <th>Oluşturma Tarihi</th>
+                    <th>İşlemler</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var category in Model)
+                    {
+                        <tr>
+                            <td>@category.Id</td>
+                            <td>@category.Name</td>
+                            <td>@category.Slug</td>
+                            <td>@(category.ParentName ?? "-")</td>
+                            <td>@category.ContentCount</td>
+                            <td>@category.SortOrder</td>
+                            <td>
+                                <span class="status-badge @(category.IsActive ? "active" : "inactive")">
+                                    @(category.IsActive ? "Aktif" : "Pasif")
+                                </span>
+                            </td>
+                            <td>@category.CreatedDate.ToString("dd.MM.yyyy")</td>
+                            <td>
+                                <button class="btn-edit" onclick="editCategory(@category.Id)">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-delete" onclick="deleteCategory(@category.Id, '@category.Name')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+
+                                <!-- Hidden delete form for each category -->
+                                <form id="deleteForm_@category.Id" asp-controller="Admin" asp-action="DeleteCategory" method="post" style="display: none;">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@category.Id" />
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 40px;">
+                            <i class="fas fa-folder-open" style="font-size: 48px; color: var(--gray-400); margin-bottom: 16px;"></i>
+                            <br>
+                            Henüz kategori bulunmamaktadır.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal for Add Category -->
+<div class="modal-overlay" id="categoryModal">
+    <div class="modal-content">
+        <form asp-controller="Admin" asp-action="CreateCategory" method="post">
+            @Html.AntiForgeryToken()
+            <div style="padding: 24px;">
+                <h3 style="margin-bottom: 20px; color: var(--dark-color);">Yeni Kategori Ekle</h3>
+
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" name="Name" class="form-control" required placeholder="Kategori adını girin">
+                </div>
+
+                <div class="form-group">
+                    <label>Slug</label>
+                    <input type="text" name="Slug" class="form-control" placeholder="kategori-slug">
+                </div>
+
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <textarea name="Description" class="form-control" rows="3" placeholder="Kategori açıklaması"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Üst Kategori</label>
+                    <select name="ParentId" class="form-control">
+                        <option value="">Ana Kategori</option>
+                        @if (Model != null)
+                        {
+                            @foreach (var category in Model.Where(c => c.ParentId == null))
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Sıralama</label>
+                    <input type="number" name="SortOrder" class="form-control" value="1" min="1">
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" class="btn-delete" onclick="closeModal()">İptal</button>
+                    <button type="submit" class="item-action">Kaydet</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal for Edit Category -->
+<div class="modal-overlay" id="editCategoryModal">
+    <div class="modal-content">
+        <form id="editCategoryForm" asp-controller="Admin" asp-action="UpdateCategory" method="post">
+            @Html.AntiForgeryToken()
+            <div style="padding: 24px;">
+                <h3 style="margin-bottom: 20px; color: var(--dark-color);">Kategori Düzenle</h3>
+
+                <input type="hidden" id="editCategoryId" name="Id" />
+
+                <div class="form-group">
+                    <label>Kategori Adı</label>
+                    <input type="text" id="editCategoryName" name="Name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Slug</label>
+                    <input type="text" id="editCategorySlug" name="Slug" class="form-control">
+                </div>
+
+                <div class="form-group">
+                    <label>Açıklama</label>
+                    <textarea id="editCategoryDescription" name="Description" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Üst Kategori</label>
+                    <select id="editCategoryParent" name="ParentId" class="form-control">
+                        <option value="">Ana Kategori</option>
+                        @if (Model != null)
+                        {
+                            @foreach (var category in Model.Where(c => c.ParentId == null))
+                            {
+                                <option value="@category.Id">@category.Name</option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Sıralama</label>
+                    <input type="number" id="editCategorySortOrder" name="SortOrder" class="form-control" min="1">
+                </div>
+
+                <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px;">
+                    <button type="button" class="btn-delete" onclick="closeEditModal()">İptal</button>
+                    <button type="submit" class="item-action">Güncelle</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Add Category Modal
+    function showAddCategoryForm() {
+        document.getElementById('categoryModal').classList.add('show');
+    }
+
+    function closeModal() {
+        document.getElementById('categoryModal').classList.remove('show');
+    }
+
+    // Edit Category Functions
+    function editCategory(id) {
+        // You would typically make an AJAX call to get category details
+        // For now, we'll use a simple prompt-based approach
+
+        // Find the row with this ID
+        const row = document.querySelector(`button[onclick*="editCategory(${id})"]`).closest('tr');
+        const cells = row.querySelectorAll('td');
+
+        // Fill the edit form
+        document.getElementById('editCategoryId').value = id;
+        document.getElementById('editCategoryName').value = cells[1].textContent.trim();
+        document.getElementById('editCategorySlug').value = cells[2].textContent.trim();
+        document.getElementById('editCategorySortOrder').value = cells[5].textContent.trim();
+
+        // Show edit modal
+        document.getElementById('editCategoryModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+        document.getElementById('editCategoryModal').classList.remove('show');
+    }
+
+    // Delete Category Function - FİXED!
+    function deleteCategory(id, categoryName) {
+        if (confirm(`"${categoryName}" kategorisini silmek istediğinizden emin misiniz?\n\nBu işlem geri alınamaz!`)) {
+            // Show loading state
+            const deleteButton = document.querySelector(`button[onclick*="deleteCategory(${id}"]`);
+            const originalHTML = deleteButton.innerHTML;
+            deleteButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            deleteButton.disabled = true;
+
+            // Submit the hidden form
+            const form = document.getElementById(`deleteForm_${id}`);
+            if (form) {
+                form.submit();
+            } else {
+                // Fallback: Create and submit form dynamically
+                const dynamicForm = document.createElement('form');
+                dynamicForm.method = 'POST';
+                dynamicForm.action = '@Url.Action("Categories", "Admin")';
+
+                // Add anti-forgery token
+                const tokenInput = document.createElement('input');
+                tokenInput.type = 'hidden';
+                tokenInput.name = '__RequestVerificationToken';
+                tokenInput.value = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                // Add ID input
+                const idInput = document.createElement('input');
+                idInput.type = 'hidden';
+                idInput.name = 'id';
+                idInput.value = id;
+
+                dynamicForm.appendChild(tokenInput);
+                dynamicForm.appendChild(idInput);
+                document.body.appendChild(dynamicForm);
+                dynamicForm.submit();
+            }
+        }
+    }
+
+    // Auto-generate slug for add form
+    document.querySelector('input[name="Name"]').addEventListener('input', function (e) {
+        const slugInput = document.querySelector('input[name="Slug"]');
+        const slug = e.target.value
+            .toLowerCase()
+            .replace(/ğ/g, 'g')
+            .replace(/ü/g, 'u')
+            .replace(/ş/g, 's')
+            .replace(/ı/g, 'i')
+            .replace(/ö/g, 'o')
+            .replace(/ç/g, 'c')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        slugInput.value = slug;
+    });
+
+    // Auto-generate slug for edit form
+    document.getElementById('editCategoryName').addEventListener('input', function (e) {
+        const slugInput = document.getElementById('editCategorySlug');
+        const slug = e.target.value
+            .toLowerCase()
+            .replace(/ğ/g, 'g')
+            .replace(/ü/g, 'u')
+            .replace(/ş/g, 's')
+            .replace(/ı/g, 'i')
+            .replace(/ö/g, 'o')
+            .replace(/ç/g, 'c')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        slugInput.value = slug;
+    });
+
+    // Close modal on outside click
+    document.getElementById('categoryModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+
+    document.getElementById('editCategoryModal').addEventListener('click', function (e) {
+        if (e.target === this) {
+            closeEditModal();
+        }
+    });
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <text>
+            document.addEventListener('DOMContentLoaded', function () {
+                showToast('success', '@TempData["SuccessMessage"]');
+            });
+        </text>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <text>
+            document.addEventListener('DOMContentLoaded', function () {
+                showToast('error', '@TempData["ErrorMessage"]');
+            });
+        </text>
+    }
+</script>
+
+<style>
+    /* Modal styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 10000;
+    }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        transform: scale(0.95);
+        transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.show .modal-content {
+        transform: scale(1);
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+    }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+    .btn-edit,
+    .btn-delete {
+        padding: 8px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        margin-right: 5px;
+        transition: all 0.2s ease;
+    }
+
+    .btn-edit {
+        background: #3b82f6;
+        color: white;
+    }
+
+        .btn-edit:hover {
+            background: #2563eb;
+        }
+
+    .btn-delete {
+        background: #ef4444;
+        color: white;
+    }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .btn-delete:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+        .status-badge.active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+</style>
